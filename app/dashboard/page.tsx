@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DashboardPage from "@/components/dashboard/DashboardPage";
+import Navbar from "@/components/Navbar";
+
+// Components Dashboard Page
 
 interface IUser {
     id: number;
@@ -47,15 +51,8 @@ export default function Dashboard() {
 
     return (
         <>
-            <div className="p-6">
-                <h1 className="text-2xl font-bold">Welcome, {user.firstName}!</h1>
-                <button
-                    onClick={logout}
-                    className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg"
-                >
-                    Logout
-                </button>
-            </div>
+         <Navbar onClick={logout}/>
+         <DashboardPage/>
         </>
     )
 }
