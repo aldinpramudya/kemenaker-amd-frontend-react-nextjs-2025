@@ -1,155 +1,218 @@
 "use client";
-import { FormEvent, useState } from "react";
+
+import { useState, useCallback } from "react";
+import { useDropzone } from "react-dropzone";
 
 interface CreateProductModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-export default function CreateProductModal({ isOpen, onClose }: CreateProductModalProps) {
+interface ProductResponse {
+    title: string;
+    tags: string[];
+    description: string;
+    price: number;
+    images: string[];
+}
+
+export default function CreateProductModal({
+    isOpen,
+    onClose,
+}: CreateProductModalProps) {
+    // Semua hooks harus dideklarasikan di sini (tidak di dalam kondisi)
     const [title, setTitle] = useState("");
-    const [tags, setTags] = useState<string[]>([]);
     const [tagInput, setTagInput] = useState("");
+    const [tags, setTags] = useState<string[]>([]);
     const [description, setDescription] = useState("");
-    const [price, setPrice] = useState<number | string>("");
-    const [image, setImage] = useState<File | null>(null);
+    const [price, setPrice] = useState("");
+    const [image, setImage] = useState<string | null>(null);
+    const [savedProduct, setSavedProduct] = useState<ProductResponse | null>(null);
 
-    const [showConfirmation, setShowConfirmation] = useState(false);
-    const [submittedData, setSubmittedData] = useState(null);
+    // onDrop didefinisikan dengan useCallback agar referensi stabil (opsional)
+    const onDrop = useCallback((acceptedFiles: File[]) => {
+        const file = acceptedFiles[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => setImage(reader.result as string);
+        reader.readAsDataURL(file);
+    }, []);
 
+    // PENTING: useDropzone harus dipanggil setiap render (tidak di dalam kondisi)
+    const { getRootProps, getInputProps } = useDropzone({ onDrop });
+
+    // Jika modal closed, kita tetap memanggil hooks tapi jangan render UI modal
     if (!isOpen) return null;
 
+    // TAG HANDLER
     const handleAddTag = () => {
-        if (tagInput.trim() !== "") {
-            setTags([...tags, tagInput.trim()]);
-            setTagInput("");
-        }
+        if (!tagInput.trim()) return;
+        setTags((prev) => [...prev, tagInput.trim()]);
+        setTagInput("");
     };
 
-    const handleSubmit = async (e : FormEvent) => {
-         e.preventDefault();
-        const res = await fetch("https://dummyjson.com/products", {
-            method : "POST",
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                title : title,
-                tags : tags,
-                description : description,
-                price : price,
-                image :image?.name || "No file uploaded"
-            })
-        })
-        .then(res => res.json())
-        const data = {
+    const removeTag = (idx: number) => {
+        setTags((prev) => prev.filter((_, i) => i !== idx));
+    };
+
+    // SUBMIT
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!image) return alert("Image belum di-upload.");
+
+        const payload = {
             title,
             tags,
             description,
-            price,
-            image: image?.name || "No file uploaded",
+            price: Number(price),
+            images: [image],
         };
 
-        setSubmittedData(data);
-        setShowConfirmation(true);
+        const res = await fetch("https://dummyjson.com/products/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
 
-        // reset form
+        const data = (await res.json()) as ProductResponse;
+        setSavedProduct(data);
+    };
+
+    const closeModal = () => {
+        setSavedProduct(null);
         setTitle("");
         setTags([]);
+        setTagInput("");
         setDescription("");
         setPrice("");
         setImage(null);
+        onClose();
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex justify-center items-center">
-            {/* Main Modal */}
-            {!showConfirmation && (
-                <div className="bg-white p-6 rounded-lg w-full max-w-md">
-                    <h2 className="text-xl font-semibold mb-4">Create Product</h2>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white w-full max-w-lg rounded-xl p-6 shadow-xl relative">
+                <h2 className="text-xl font-semibold mb-4">Create Product</h2>
 
-                    <form onSubmit={handleSubmit}>
-                        <label className="block mb-2">Product Name</label>
+                {!savedProduct && (
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <input
-                            type="text"
-                            className="w-full border p-2 mb-4"
+                            className="border p-2 w-full"
+                            placeholder="Title"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                         />
 
-                        <label className="block mb-2">Tags (Array)</label>
-                        <div className="flex gap-2 mb-2">
-                            <input
-                                type="text"
-                                className="border p-2 flex-1"
-                                value={tagInput}
-                                onChange={(e) => setTagInput(e.target.value)}
-                            />
-                            <button type="button" onClick={handleAddTag} className="px-4 bg-black text-white">
-                                Add
-                            </button>
+                        {/* TAGS */}
+                        <div>
+                            <div className="flex gap-2">
+                                <input
+                                    className="border p-2 w-full"
+                                    placeholder="Add Tag"
+                                    value={tagInput}
+                                    onChange={(e) => setTagInput(e.target.value)}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleAddTag}
+                                    className="px-4 py-2 bg-green-600 text-white rounded"
+                                >
+                                    Add
+                                </button>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {tags.map((tag, idx) => (
+                                    <span
+                                        key={idx}
+                                        className="bg-gray-200 px-3 py-1 rounded-full flex items-center gap-2"
+                                    >
+                                        {tag}
+                                        <button
+                                            type="button"
+                                            onClick={() => removeTag(idx)}
+                                            className="text-red-500 font-bold"
+                                        >
+                                            ×
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
                         </div>
 
-                        <div className="flex gap-2 mb-4 flex-wrap">
-                            {tags.map((tag, i) => (
-                                <span key={i} className="px-3 py-1 bg-gray-200 rounded-full text-sm">
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
-
-                        <label className="block mb-2">Description</label>
                         <textarea
-                            className="w-full border p-2 mb-4"
+                            className="border p-2 w-full"
+                            placeholder="Description"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                         />
 
-                        <label className="block mb-2">Price</label>
                         <input
+                            className="border p-2 w-full"
+                            placeholder="Price"
                             type="number"
-                            className="w-full border p-2 mb-4"
                             value={price}
                             onChange={(e) => setPrice(e.target.value)}
                         />
 
-                        <label className="block mb-2">Upload Image</label>
-                        <input
-                            type="file"
-                            className="w-full border p-2 mb-4"
-                            onChange={(e) => setImage(e.target.files ? e.target.files[0] : null)}
-                        />
+                        {/* DROPZONE */}
+                        <div
+                            {...getRootProps()}
+                            className="p-6 border-2 border-dashed text-center cursor-pointer"
+                        >
+                            <input {...getInputProps()} />
+                            {image ? (
+                                <img src={image} alt="preview" className="h-32 mx-auto" />
+                            ) : (
+                                <p>Drop file image here</p>
+                            )}
+                        </div>
 
-                        <div className="flex justify-end gap-3 mt-4">
-                            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-300">
+                        <div className="flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={closeModal}
+                                className="px-4 py-2 bg-gray-400 text-white rounded"
+                            >
                                 Cancel
                             </button>
-                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white">
-                                Save
+                            <button
+                                type="submit"
+                                className="px-4 py-2 bg-blue-600 text-white rounded"
+                            >
+                                Save Product
                             </button>
                         </div>
                     </form>
-                </div>
-            )}
+                )}
 
-            {/* Confirmation Modal */}
-            {showConfirmation && (
-                <div className="bg-white p-6 rounded-lg w-full max-w-md text-center">
-                    <h2 className="text-xl font-semibold mb-4">Product Created Successfully!</h2>
+                {savedProduct && (
+                    <div className="text-center">
+                        <h3 className="text-xl font-semibold mb-2">Product Saved!</h3>
 
-                    <pre className="bg-gray-100 p-3 text-left rounded mb-4 overflow-auto text-sm">
-                        {JSON.stringify(submittedData, null, 2)}
-                    </pre>
+                        <p><strong>Title:</strong> ${savedProduct.title}</p>
+                        {Array.isArray(savedProduct.tags) && (
+                            <p><strong>Tags:</strong> ${savedProduct.tags.join(", ")}</p>
+                        )}
+                        <p><strong>Price:</strong> ${savedProduct.price}</p>
 
-                    <button
-                        className="px-4 py-2 bg-black text-white"
-                        onClick={() => {
-                            setShowConfirmation(false);
-                            onClose();
-                        }}
-                    >
-                        Close
-                    </button>
-                </div>
-            )}
+                        {savedProduct.images?.length > 0 && (
+                            <img
+                                src={savedProduct.images[0]}
+                                alt="saved"
+                                className="mt-3 h-40 mx-auto"
+                            />
+                        )}
+
+                        <button
+                            onClick={closeModal}
+                            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
+                        >
+                            Close
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
