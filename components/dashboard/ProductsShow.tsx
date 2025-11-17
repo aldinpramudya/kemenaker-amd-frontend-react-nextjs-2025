@@ -5,15 +5,31 @@ import Link from "next/link";
 import { IProduct } from "@/types/Product";
 
 import CardProduct from "@/components/CardProduct";
+import CreateProductModal from "@/components/CreateProductModal";
 
 export default function ProductShow() {
     const [products, setProduct] = useState<IProduct[]>([]);
+    const [openModal, setOpenModal] = useState(false);
 
-    // Fetch Data
+    // Fetch or Get Data
     const fetchProducts = async () => {
         const res = await fetch("https://dummyjson.com/products");
         const data = await res.json();
         setProduct(data.products);
+    }
+
+    // Delete a Product
+    const deleteProduct = async (id: number) => {
+        const confirmation = confirm("Are you sure want to delete this item?");
+
+        if (!confirmation) return;
+
+        await fetch(`https://dummyjson.com/products/${id}`, {
+            method: "DELETE",
+        });
+
+        alert("Product deleted!");
+        fetchProducts();
     }
 
     useEffect(() => {
@@ -26,17 +42,22 @@ export default function ProductShow() {
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-2xl font-bold">Products List</h1>
 
-                    <Link
-                        href="/products/create"
-                        className="bg-blue-600 text-white px-4 py-2 rounded"
+                    <button
+                        onClick={() => setOpenModal(true)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded"
                     >
-                        + Add Product
-                    </Link>
+                        + Create Product
+                    </button>
+
+                    <CreateProductModal
+                        isOpen={openModal}
+                        onClose={() => setOpenModal(false)}
+                    />
                 </div>
 
                 <div className="grid grid-cols-4 space-x-3 space-y-4">
                     {products.map((data) => (
-                        <CardProduct key={data.id} image={data.images} badge={data.tags} description={data.description} price={data.price}/>
+                        <CardProduct key={data.id} title={data.title} id={data.id} onDelete={() => deleteProduct(data.id)} image={data.images} badge={data.tags} description={data.description} price={data.price} />
                     ))}
                 </div>
             </div>
