@@ -1,15 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { IProduct } from "@/types/Product";
 
 import CardProduct from "@/components/CardProduct";
 import CreateProductModal from "@/components/CreateProductModal";
+import EditProductModal from "../EditProductModal";
 
 export default function ProductShow() {
     const [products, setProduct] = useState<IProduct[]>([]);
     const [openModal, setOpenModal] = useState(false);
+    const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+    const [openEditModal, setOpenEditModal] = useState(false);
 
     // Fetch or Get Data
     const fetchProducts = async () => {
@@ -53,11 +55,28 @@ export default function ProductShow() {
                         isOpen={openModal}
                         onClose={() => setOpenModal(false)}
                     />
+
+                    <EditProductModal
+                        isOpen={openEditModal}
+                        productId={selectedProductId}
+                        onClose={() => setOpenEditModal(false)}
+                    />
                 </div>
 
                 <div className="grid grid-cols-4 space-x-3 space-y-4">
                     {products.map((data) => (
-                        <CardProduct key={data.id} title={data.title} id={data.id} onDelete={() => deleteProduct(data.id)} image={data.images} badge={data.tags} description={data.description} price={data.price} />
+                        <CardProduct
+                            key={data.id}
+                            title={data.title}
+                            id={data.id}
+                            onDelete={() => deleteProduct(data.id)}
+                            onEdit={() => {
+                                setSelectedProductId(data.id);
+                                setOpenEditModal(true);
+                            }}
+                            image={data.images} badge={data.tags}
+                            description={data.description}
+                            price={data.price} />
                     ))}
                 </div>
             </div>
