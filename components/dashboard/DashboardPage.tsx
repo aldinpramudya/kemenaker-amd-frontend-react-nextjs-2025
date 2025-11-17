@@ -1,11 +1,11 @@
-import Navbar from "@/components/Navbar"
+import ProductShow from "./ProductsShow"
 
-export default function DashboardPage(){
-    return(
+export default function DashboardPage() {
+    return (
         <>
-        <div>
-
-        </div>
+            <div className="px-20">
+                <ProductShow />
+            </div>
         </>
     )
 }
