@@ -1,4 +1,12 @@
-## MAGANG KEMNAKER AMD ACADEMY GUIDE
+# MAGANG KEMNAKER AMD ACADEMY GUIDE
+
+### Username Login
+emilys
+
+### Password Login
+emilyspass
+
+## Cara Untuk Menjalankan Proyek secara Local
 
 1. Clone Project
 
