@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 
 interface CreateProductModalProps {
     isOpen: boolean;
@@ -26,9 +26,20 @@ export default function CreateProductModal({ isOpen, onClose }: CreateProductMod
         }
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
+    const handleSubmit = async (e : FormEvent) => {
+         e.preventDefault();
+        const res = await fetch("https://dummyjson.com/products", {
+            method : "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title : title,
+                tags : tags,
+                description : description,
+                price : price,
+                image :image?.name || "No file uploaded"
+            })
+        })
+        .then(res => res.json())
         const data = {
             title,
             tags,
